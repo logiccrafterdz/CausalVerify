@@ -97,7 +97,7 @@ Pure function that verifies a causal proof WITHOUT network calls or state.
 
 ## Development Timeline
 
-| Week | Deliverable |
+| Phase | Deliverable |
 |------|-------------|
 | 1 | Core Causal Event Registry + Merkle Tree implementation |
 | 2 | Atomic Proof Generation + Verification Engine |
