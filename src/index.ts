@@ -21,6 +21,7 @@ export type {
 export * from './registry/index.js';
 export * from './proof/index.js';
 export * from './verification/index.js';
+export * from './integration/index.js';
 
 // Crypto utilities
 export { sha3, sha3Bytes, sha3Concat } from './crypto/sha3.js';
