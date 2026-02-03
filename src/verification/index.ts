@@ -5,3 +5,5 @@
 
 export * from './verifier.js';
 export * from './rules.js';
+export * from './patterns.js';
+
