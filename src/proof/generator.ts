@@ -51,7 +51,8 @@ export class ProofGenerator {
             .map(event => ({
                 eventHash: event.eventHash,
                 actionType: event.actionType,
-                timestamp: event.timestamp
+                timestamp: event.timestamp,
+                predecessorHash: event.predecessorHash
             }));
 
         // 3. Get current root hash and sign it

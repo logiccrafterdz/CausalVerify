@@ -80,6 +80,22 @@ export class SemanticRulesEngine {
             }
         }
 
+        // 5. Direct Causality
+        if (this.rules.requireDirectCausality) {
+            for (let i = 1; i < chain.length; i++) {
+                const current = chain[i];
+                const previous = chain[i - 1];
+                if (current && previous && current.predecessorHash !== previous.eventHash) {
+                    violations.push(`Causality violation: event ${current.eventHash} is not a direct successor of ${previous.eventHash}`);
+                }
+            }
+        }
+
+        // 6. Minimum Verification Depth
+        if (this.rules.minVerificationDepth && chain.length < this.rules.minVerificationDepth) {
+            violations.push(`Insufficient chain depth: expected at least ${this.rules.minVerificationDepth}, got ${chain.length}`);
+        }
+
         return {
             valid: violations.length === 0,
             violations

@@ -137,8 +137,8 @@ describe('Stateless Verification', () => {
     describe('Causal Chain Verification', () => {
         it('should detect temporal anomalies', () => {
             const chain = [
-                { eventHash: 'h1', actionType: 'request' as any, timestamp: 1000 },
-                { eventHash: 'h2', actionType: 'response' as any, timestamp: 500 } // ERROR: backwards in time
+                { eventHash: 'h1', actionType: 'request' as any, timestamp: 1000, predecessorHash: null },
+                { eventHash: 'h2', actionType: 'response' as any, timestamp: 500, predecessorHash: 'h1' } // ERROR: backwards in time
             ];
 
             const result = verifyCausalChain(chain, 'h2');
@@ -154,7 +154,7 @@ describe('Stateless Verification', () => {
 
         it('should reject chain with final hash mismatch', () => {
             const chain = [
-                { eventHash: 'h1', actionType: 'request' as any, timestamp: 1000 }
+                { eventHash: 'h1', actionType: 'request' as any, timestamp: 1000, predecessorHash: null }
             ];
             const result = verifyCausalChain(chain, 'wrong-hash');
             expect(result.valid).toBe(false);
@@ -172,13 +172,13 @@ describe('Stateless Verification', () => {
             const engine = new SemanticRulesEngine({ requestMustPrecedeResponse: true });
 
             const validChain = [
-                { eventHash: 'h1', actionType: 'request' as any, timestamp: 1000 },
-                { eventHash: 'h2', actionType: 'response' as any, timestamp: 2000 }
+                { eventHash: 'h1', actionType: 'request' as any, timestamp: 1000, predecessorHash: null },
+                { eventHash: 'h2', actionType: 'response' as any, timestamp: 2000, predecessorHash: 'h1' }
             ];
             expect(engine.validate(validChain).valid).toBe(true);
 
             const invalidChain = [
-                { eventHash: 'h2', actionType: 'response' as any, timestamp: 2000 }
+                { eventHash: 'h2', actionType: 'response' as any, timestamp: 2000, predecessorHash: null }
             ];
             const result = engine.validate(invalidChain);
             expect(result.valid).toBe(false);
@@ -189,13 +189,51 @@ describe('Stateless Verification', () => {
             const engine = new SemanticRulesEngine({ maxTimeGapMs: 1000 });
 
             const chain = [
-                { eventHash: 'h1', actionType: 'request' as any, timestamp: 1000 },
-                { eventHash: 'h2', actionType: 'response' as any, timestamp: 3000 } // Gap of 2000ms
+                { eventHash: 'h1', actionType: 'request' as any, timestamp: 1000, predecessorHash: null },
+                { eventHash: 'h2', actionType: 'response' as any, timestamp: 3000, predecessorHash: 'h1' } // Gap of 2000ms
             ];
 
             const result = engine.validate(chain);
             expect(result.valid).toBe(false);
             expect(result.violations[0]).toContain('Temporal violation');
+        });
+
+        it('should enforce direct causality', () => {
+            const engine = new SemanticRulesEngine({ requireDirectCausality: true });
+
+            const validChain = [
+                { eventHash: 'h1', actionType: 'request' as any, timestamp: 1000, predecessorHash: null },
+                { eventHash: 'h2', actionType: 'response' as any, timestamp: 2000, predecessorHash: 'h1' }
+            ];
+            expect(engine.validate(validChain).valid).toBe(true);
+
+            const invalidChain = [
+                { eventHash: 'h1', actionType: 'request' as any, timestamp: 1000, predecessorHash: null },
+                { eventHash: 'h3', actionType: 'response' as any, timestamp: 2000, predecessorHash: 'h2' } // ERROR: h3's predecessor is h2, not h1
+            ];
+            const result = engine.validate(invalidChain);
+            expect(result.valid).toBe(false);
+            expect(result.violations[0]).toContain('Causality violation');
+        });
+
+        it('should enforce minimum verification depth', () => {
+            const engine = new SemanticRulesEngine({ minVerificationDepth: 3 });
+
+            const shortChain = [
+                { eventHash: 'h1', actionType: 'request' as any, timestamp: 1000, predecessorHash: null },
+                { eventHash: 'h2', actionType: 'response' as any, timestamp: 2000, predecessorHash: 'h1' }
+            ];
+
+            const result = engine.validate(shortChain);
+            expect(result.valid).toBe(false);
+            expect(result.violations[0]).toContain('Insufficient chain depth');
+
+            const longChain = [
+                { eventHash: 'h0', actionType: 'request' as any, timestamp: 500, predecessorHash: null },
+                { eventHash: 'h1', actionType: 'request' as any, timestamp: 1000, predecessorHash: 'h0' },
+                { eventHash: 'h2', actionType: 'response' as any, timestamp: 2000, predecessorHash: 'h1' }
+            ];
+            expect(engine.validate(longChain).valid).toBe(true);
         });
 
         it('should enforce required and forbidden action types', () => {
@@ -205,7 +243,7 @@ describe('Stateless Verification', () => {
             });
 
             const chainWithForbidden = [
-                { eventHash: 'h1', actionType: 'error' as any, timestamp: 1000 }
+                { eventHash: 'h1', actionType: 'error' as any, timestamp: 1000, predecessorHash: null }
             ];
             const resultForbidden = engine.validate(chainWithForbidden);
             expect(resultForbidden.valid).toBe(false);

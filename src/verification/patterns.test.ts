@@ -46,7 +46,7 @@ describe('Verification Patterns', () => {
             actionType: 'request',
             payloadHash: sha3('q1'),
             predecessorHash: null,
-            timestamp: Date.now()
+            timestamp: 1000
         });
 
         const res = registry.registerEvent({
@@ -54,7 +54,7 @@ describe('Verification Patterns', () => {
             actionType: 'response',
             payloadHash: sha3('a1'),
             predecessorHash: req.eventHash,
-            timestamp: Date.now() + 100
+            timestamp: 1500
         });
 
         const proof = generator.generateProof(res.causalEventId, privateKey);

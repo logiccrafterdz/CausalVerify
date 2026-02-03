@@ -76,6 +76,8 @@ export interface CausalChainElement {
     actionType: ActionType;
     /** Timestamp */
     timestamp: number;
+    /** Hash of the preceding event */
+    predecessorHash: string | null;
 }
 
 /**
@@ -104,6 +106,10 @@ export interface SemanticRules {
     requiredActionTypes?: ActionType[];
     /** Forbidden action types (e.g., 'error' for high-trust) */
     forbiddenActionTypes?: ActionType[];
+    /** Require every event to be the direct successor of the previous one in the chain */
+    requireDirectCausality?: boolean;
+    /** Minimum number of events required in the causal chain */
+    minVerificationDepth?: number;
 }
 
 /**
