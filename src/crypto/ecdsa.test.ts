@@ -132,6 +132,24 @@ describe('ECDSA secp256k1', () => {
             expect(verify(messageHash, '0x1234', publicKey)).toBe(false);
             expect(verify(messageHash, 'invalid', publicKey)).toBe(false);
         });
+
+        it('should reject non-canonical (High-S) signatures', () => {
+            const { privateKey, publicKey } = generateKeyPair();
+            const messageHash = sha3('test');
+
+            // Generate a valid signature
+            const sig = sign(messageHash, privateKey);
+            const r = BigInt(sig.slice(0, 66));
+            let s = BigInt('0x' + sig.slice(66));
+
+            // Force high-S (N - s)
+            const N = 0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141n;
+            const highS = N - s;
+            const highSig = '0x' + r.toString(16).padStart(64, '0') + highS.toString(16).padStart(64, '0');
+
+            // Signature verification should fail for high-S (BIP-62)
+            expect(verify(messageHash, highSig, publicKey)).toBe(false);
+        });
     });
 
     describe('recoverPublicKey', () => {

@@ -144,6 +144,29 @@ describe('MerkleTree', () => {
             expect(MerkleTree.verifyProof(leafHash, proofPath, sha3('wrong-root'))).toBe(false);
         });
 
+        it('should handle empty tree verification', () => {
+            expect(MerkleTree.verifyProof(sha3('leaf'), [], '')).toBe(false);
+        });
+
+        it('should verify single-leaf tree with empty path', () => {
+            const leaf = sha3('only');
+            expect(MerkleTree.verifyProof(leaf, [], leaf)).toBe(true);
+        });
+
+        it('should reject if sibling hash is tampered', () => {
+            const tree = new MerkleTree();
+            tree.append(sha3('a'));
+            tree.append(sha3('b'));
+
+            const proofPath = tree.getProofPath(0);
+            const root = tree.getRootHash();
+
+            // Tamper sibling hash
+            proofPath[0].siblingHash = sha3('tampered');
+
+            expect(MerkleTree.verifyProof(sha3('a'), proofPath, root)).toBe(false);
+        });
+
         it('should verify proofs for all leaves', () => {
             const tree = new MerkleTree();
             const leaves: string[] = [];

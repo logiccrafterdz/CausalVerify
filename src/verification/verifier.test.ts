@@ -160,6 +160,25 @@ describe('Stateless Verification', () => {
             expect(result.valid).toBe(false);
             expect(result.errors[0]).toContain('Causal chain final hash mismatch');
         });
+
+        it('should detect causal gap injection', () => {
+            const chain = [
+                { eventHash: 'h1', actionType: 'request' as any, timestamp: 1000, predecessorHash: null },
+                { eventHash: 'h3', actionType: 'response' as any, timestamp: 2000, predecessorHash: 'h2' } // GAP: h2 is referenced but missing
+            ];
+            const result = verifyCausalChain(chain, 'h3');
+            expect(result.valid).toBe(false);
+            expect(result.errors[0]).toContain('Causal gap detected');
+        });
+
+        it('should reject non-root event claimed as root', () => {
+            const chain = [
+                { eventHash: 'h2', actionType: 'response' as any, timestamp: 1000, predecessorHash: 'h1' } // Error: references h1 but claims to be start of chain
+            ];
+            const result = verifyCausalChain(chain, 'h2');
+            expect(result.valid).toBe(false);
+            expect(result.errors[0]).toContain('Invalid root event');
+        });
     });
 
     describe('SemanticRulesEngine', () => {

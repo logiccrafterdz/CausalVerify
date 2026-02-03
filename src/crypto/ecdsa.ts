@@ -270,6 +270,12 @@ export function verify(messageHash: string, signature: string, publicKey: string
             return false;
         }
 
+        // Normalize s to lower half of curve order (BIP-62)
+        // Reject non-canonical signatures to prevent malleability
+        if (s > N / 2n) {
+            return false;
+        }
+
         const pubPoint = parsePublicKey(publicKey);
 
         const sInv = modInverse(s, N);

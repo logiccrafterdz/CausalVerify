@@ -112,12 +112,27 @@ export function verifyCausalChain(
 
     // In a stateless verifier, we can't fully "re-verify" the hashes of predecessors 
     // unless the chain includes enough data.
-    // However, we can verify temporal ordering if timestamps are included.
-    for (let i = 1; i < chain.length; i++) {
+    // However, we can verify temporal ordering and structural integrity.
+    for (let i = 0; i < chain.length; i++) {
         const current = chain[i];
-        const previous = chain[i - 1];
-        if (current && previous && current.timestamp < previous.timestamp) {
-            errors.push(`Temporal anomaly at index ${i}: event ${current.eventHash} happened before its predecessor`);
+        if (!current) continue;
+
+        // Verify root node has no predecessor
+        if (i === 0 && current.predecessorHash !== null) {
+            errors.push('Invalid root event: first event in chain must have null predecessorHash');
+        }
+
+        // Verify sequential continuity
+        if (i > 0) {
+            const previous = chain[i - 1];
+            if (previous) {
+                if (current.predecessorHash !== previous.eventHash) {
+                    errors.push(`Causal gap detected: event ${current.eventHash} at index ${i} expects predecessor ${current.predecessorHash}, but got ${previous.eventHash}`);
+                }
+                if (current.timestamp < previous.timestamp) {
+                    errors.push(`Temporal anomaly at index ${i}: event ${current.eventHash} happened before its predecessor`);
+                }
+            }
         }
     }
 

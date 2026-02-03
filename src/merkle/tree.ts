@@ -194,6 +194,9 @@ export class MerkleTree {
         proofPath: ProofPathElement[],
         expectedRoot: string
     ): boolean {
+        if (!expectedRoot) return false;
+        if (proofPath.length === 0) return leafHash === expectedRoot;
+
         let currentHash = leafHash;
 
         for (const step of proofPath) {

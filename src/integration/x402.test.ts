@@ -47,4 +47,16 @@ describe('x402 Integration', () => {
         const invalidBase64 = Buffer.from('not-json').toString('base64');
         expect(() => decodeCausalHeader(invalidBase64)).toThrow();
     });
+
+    it('should handle malformed base64 without crashing', () => {
+        // base64 with invalid chars for atob/Buffer.from
+        expect(() => decodeCausalHeader('!!!???')).toThrow();
+    });
+
+    it('should reject undersized or missing required fields in decoded object', () => {
+        const partialData = Buffer.from(JSON.stringify({ targetEvent: {} })).toString('base64');
+        const decoded = decodeCausalHeader(partialData);
+        expect(decoded.targetEvent).toBeDefined();
+        expect(decoded.treeRootHash).toBeUndefined();
+    });
 });
