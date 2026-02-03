@@ -116,4 +116,18 @@ describe('UUIDv7', () => {
             expect(compareUUIDv7(uuid.toUpperCase(), uuid.toLowerCase())).toBe(0);
         });
     });
+
+    describe('environment fallback', () => {
+        it('should fallback to Math.random if crypto is unavailable', () => {
+            const originalCrypto = global.crypto;
+            try {
+                // @ts-ignore
+                delete global.crypto;
+                const uuid = generateUUIDv7();
+                expect(isValidUUIDv7(uuid)).toBe(true);
+            } finally {
+                global.crypto = originalCrypto;
+            }
+        });
+    });
 });

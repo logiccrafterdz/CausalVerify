@@ -51,8 +51,7 @@ export class MerkleTree {
             const isLeft = currentIndex % 2 === 0;
 
             if (isLeft) {
-                // We're left child - no sibling yet (or sibling was removed)
-                // Just promote up, root computation happens when sibling arrives
+                // We're left child - no sibling yet
                 this.nodes.set(`${currentLevel + 1}:${parentIndex}`, currentHash);
             } else {
                 // We're right child - there must be a left sibling
@@ -113,8 +112,9 @@ export class MerkleTree {
      * @returns Root hash or empty string if tree is empty
      */
     getRootHash(): string {
-        if (this.leaves.length === 0) return '';
-        if (this.leaves.length === 1) return this.leaves[0] ?? '';
+        const len = this.leaves.length;
+        if (len === 0) return '';
+        if (len === 1) return this.leaves[0] ?? '';
 
         // Find root node at top level
         const height = this.getHeight();
@@ -125,8 +125,7 @@ export class MerkleTree {
                 return hash;
             }
         }
-
-        return this.nodes.get('0:0') ?? '';
+        return '';
     }
 
     /**
@@ -144,7 +143,7 @@ export class MerkleTree {
      */
     getProofPath(leafIndex: number): ProofPathElement[] {
         if (leafIndex < 0 || leafIndex >= this.leaves.length) {
-            throw new Error(`Leaf index ${leafIndex} out of bounds (0-${this.leaves.length - 1})`);
+            throw new Error(`Leaf index ${leafIndex} out of bounds`);
         }
 
         const proofPath: ProofPathElement[] = [];
@@ -168,7 +167,7 @@ export class MerkleTree {
                     position: isLeftNode ? 'right' : 'left'
                 });
             } else {
-                // No sibling (odd node count), self-paired
+                // No sibling, self-paired
                 proofPath.push({
                     eventHash: currentHash,
                     siblingHash: currentHash,
@@ -184,10 +183,6 @@ export class MerkleTree {
 
     /**
      * Verify a proof path leads to the expected root
-     * @param leafHash - The leaf hash to verify
-     * @param proofPath - The proof path from getProofPath
-     * @param expectedRoot - The expected root hash
-     * @returns True if proof is valid
      */
     static verifyProof(
         leafHash: string,
@@ -201,16 +196,12 @@ export class MerkleTree {
 
         for (const step of proofPath) {
             if (step.siblingHash === step.eventHash) {
-                // Self-paired (promoted node)
                 continue;
             }
 
-            // Hash pair with sibling
             if (step.position === 'left') {
-                // Sibling is on left, current is on right
                 currentHash = MerkleTree.hashPairStatic(step.siblingHash, currentHash);
             } else {
-                // Sibling is on right, current is on left
                 currentHash = MerkleTree.hashPairStatic(currentHash, step.siblingHash);
             }
         }
@@ -233,7 +224,6 @@ export class MerkleTree {
      * @returns Complete tree export
      */
     export(): TreeExport {
-        // Reconstruct levels from nodes map
         const height = this.getHeight();
         const levels: string[][] = [];
 

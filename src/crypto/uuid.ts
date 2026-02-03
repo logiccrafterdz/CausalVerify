@@ -49,20 +49,20 @@ export function generateUUIDv7(): string {
     uuid[5] = timestamp & 0xff;
 
     // Bytes 6-7: version (7) and random
-    uuid[6] = 0x70 | ((random[0] ?? 0) & 0x0f); // Version 7
-    uuid[7] = random[1] ?? 0;
+    uuid[6] = 0x70 | (random[0]! & 0x0f); // Version 7
+    uuid[7] = random[1]!;
 
     // Byte 8: variant (10xx) and random
-    uuid[8] = 0x80 | ((random[2] ?? 0) & 0x3f); // Variant 10
+    uuid[8] = 0x80 | (random[2]! & 0x3f); // Variant 10
 
     // Bytes 9-15: random
-    uuid[9] = random[3] ?? 0;
-    uuid[10] = random[4] ?? 0;
-    uuid[11] = random[5] ?? 0;
-    uuid[12] = random[6] ?? 0;
-    uuid[13] = random[7] ?? 0;
-    uuid[14] = random[8] ?? 0;
-    uuid[15] = random[9] ?? 0;
+    uuid[9] = random[3]!;
+    uuid[10] = random[4]!;
+    uuid[11] = random[5]!;
+    uuid[12] = random[6]!;
+    uuid[13] = random[7]!;
+    uuid[14] = random[8]!;
+    uuid[15] = random[9]!;
 
     // Convert to hex string with dashes
     const hex = Array.from(uuid)

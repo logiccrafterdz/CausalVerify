@@ -54,7 +54,7 @@ export class SemanticRulesEngine {
                 const previous = chain[i - 1];
                 if (current && previous) {
                     const gap = current.timestamp - previous.timestamp;
-                    if (gap > (this.rules.maxTimeGapMs ?? 0)) {
+                    if (gap > (this.rules.maxTimeGapMs!)) {
                         violations.push(`Temporal violation: gap between ${previous.eventHash} and ${current.eventHash} is ${gap}ms, exceeding max of ${this.rules.maxTimeGapMs}ms`);
                     }
                 }

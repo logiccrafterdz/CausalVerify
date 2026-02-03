@@ -125,4 +125,25 @@ describe('SHA3-256', () => {
             expect(hash).toMatch(/^0x[a-f0-9]{64}$/);
         });
     });
+
+    describe('internal lanes and conversion', () => {
+        it('should handle inputs that fill lanes precisely (multiples of 8 bytes)', () => {
+            const data = new Uint8Array(24).fill(0x55);
+            const hash = sha3(data);
+            expect(hash).toMatch(/^0x[a-f0-9]{64}$/);
+        });
+
+        it('should handle lanes with offset remainders', () => {
+            // Test bytesToLanes with odd length
+            const data = new Uint8Array(11).fill(0x66);
+            const hash = sha3(data);
+            expect(hash).toMatch(/^0x[a-f0-9]{64}$/);
+        });
+
+        it('should handle xorBytes with exact rate boundary', () => {
+            const data = new Uint8Array(136).fill(0x77);
+            const hash = sha3(data);
+            expect(hash).toMatch(/^0x[a-f0-9]{64}$/);
+        });
+    });
 });

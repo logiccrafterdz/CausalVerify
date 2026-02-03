@@ -159,7 +159,11 @@ export class CausalEventRegistry {
         if (!event) {
             return null;
         }
-        return this.tree.getProofPath(event.positionInTree);
+        try {
+            return this.tree.getProofPath(event.positionInTree);
+        } catch {
+            return null;
+        }
     }
 
     /**

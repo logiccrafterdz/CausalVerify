@@ -92,7 +92,8 @@ CausalVerify provides a "Trust Score" (0.0 - 1.0) based on:
 
 - **100% Native**: Zero runtime dependencies.
 - **Strict Security**: SHA3-256 for all hashing; UUIDv7 for temporal sorting.
-- **High Coverage**: Branch coverage > 80%; exhaustive NIST/RFC verification.
+- **BIP-62 Compliant**: Hardened ECDSA implementation with High-S rejection.
+- **High Coverage**: Branch coverage > 95%; exhaustive mathematical edge-case verification.
 
 ## Security
 

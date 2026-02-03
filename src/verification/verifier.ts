@@ -114,8 +114,7 @@ export function verifyCausalChain(
     // unless the chain includes enough data.
     // However, we can verify temporal ordering and structural integrity.
     for (let i = 0; i < chain.length; i++) {
-        const current = chain[i];
-        if (!current) continue;
+        const current = chain[i]!;
 
         // Verify root node has no predecessor
         if (i === 0 && current.predecessorHash !== null) {

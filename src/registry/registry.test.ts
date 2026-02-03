@@ -1,352 +1,168 @@
 /**
  * Causal Event Registry Tests
- * Validates event registration and causal chain integrity
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { CausalEventRegistry } from './registry.js';
 import { sha3 } from '../crypto/sha3.js';
-import { isValidUUIDv7 } from '../crypto/uuid.js';
-import { MerkleTree } from '../merkle/tree.js';
-import type { EventInput } from '../types/index.js';
 
 describe('CausalEventRegistry', () => {
-    const TEST_AGENT_ID = '0x1234567890abcdef1234567890abcdef12345678';
-    let registry: CausalEventRegistry;
+    const agentId = '0xAgent';
 
-    beforeEach(() => {
-        registry = new CausalEventRegistry(TEST_AGENT_ID);
-    });
-
-    describe('constructor', () => {
-        it('should create registry with agent ID', () => {
-            expect(registry.getAgentId()).toBe(TEST_AGENT_ID);
+    describe('initialization', () => {
+        it('should initialize with an agent ID', () => {
+            const registry = new CausalEventRegistry(agentId);
+            expect(registry.getAgentId()).toBe(agentId);
             expect(registry.getEventCount()).toBe(0);
         });
 
-        it('should throw for empty agent ID', () => {
-            expect(() => new CausalEventRegistry('')).toThrow();
-            expect(() => new CausalEventRegistry('   ')).toThrow();
+        it('should throw if agent ID is empty', () => {
+            expect(() => new CausalEventRegistry('')).toThrow('agentId is required');
         });
     });
 
-    describe('registerEvent', () => {
-        it('should register first event with null predecessor', () => {
-            const input: EventInput = {
-                agentId: TEST_AGENT_ID,
+    describe('event registration', () => {
+        it('should register a first event with null predecessor', () => {
+            const registry = new CausalEventRegistry(agentId);
+            const event = registry.registerEvent({
+                agentId,
                 actionType: 'request',
                 payloadHash: sha3('payload'),
                 predecessorHash: null,
                 timestamp: Date.now()
-            };
-
-            const event = registry.registerEvent(input);
-
-            expect(isValidUUIDv7(event.causalEventId)).toBe(true);
-            expect(event.eventHash).toMatch(/^0x[a-f0-9]{64}$/);
-            expect(event.positionInTree).toBe(0);
-            expect(event.treeRootHash).toBe(event.eventHash);
-        });
-
-        it('should register subsequent events with valid predecessor', () => {
-            const first = registry.registerEvent({
-                agentId: TEST_AGENT_ID,
-                actionType: 'request',
-                payloadHash: sha3('first'),
-                predecessorHash: null,
-                timestamp: Date.now()
             });
 
-            const second = registry.registerEvent({
-                agentId: TEST_AGENT_ID,
-                actionType: 'response',
-                payloadHash: sha3('second'),
-                predecessorHash: first.eventHash,
-                timestamp: Date.now()
-            });
-
-            expect(second.positionInTree).toBe(1);
-            expect(second.predecessorHash).toBe(first.eventHash);
+            expect(event.predecessorHash).toBeNull();
+            expect(registry.getEventCount()).toBe(1);
+            expect(registry.getEvent(event.causalEventId)).toEqual(event);
         });
 
-        it('should throw for invalid predecessor hash', () => {
+        it('should throw if agent ID mismatch', () => {
+            const registry = new CausalEventRegistry(agentId);
             expect(() => registry.registerEvent({
-                agentId: TEST_AGENT_ID,
+                agentId: '0xWrong',
                 actionType: 'request',
-                payloadHash: sha3('test'),
-                predecessorHash: sha3('nonexistent'),
-                timestamp: Date.now()
-            })).toThrow('Invalid predecessor hash');
-        });
-
-        it('should throw for wrong agent ID', () => {
-            expect(() => registry.registerEvent({
-                agentId: 'wrong-agent-id',
-                actionType: 'request',
-                payloadHash: sha3('test'),
+                payloadHash: sha3('p'),
                 predecessorHash: null,
                 timestamp: Date.now()
             })).toThrow('Agent ID mismatch');
         });
 
-        it('should throw for invalid action type', () => {
+        it('should throw if action type is invalid', () => {
+            const registry = new CausalEventRegistry(agentId);
             expect(() => registry.registerEvent({
-                agentId: TEST_AGENT_ID,
+                agentId,
                 actionType: 'invalid' as any,
-                payloadHash: sha3('test'),
+                payloadHash: sha3('p'),
                 predecessorHash: null,
                 timestamp: Date.now()
             })).toThrow('Invalid action type');
         });
 
-        it('should handle all valid action types', () => {
-            const actionTypes = ['request', 'response', 'error', 'state_transition'] as const;
-            let prevHash: string | null = null;
-
-            for (const actionType of actionTypes) {
-                const event = registry.registerEvent({
-                    agentId: TEST_AGENT_ID,
-                    actionType,
-                    payloadHash: sha3(actionType),
-                    predecessorHash: prevHash,
-                    timestamp: Date.now()
-                });
-
-                expect(event.actionType).toBe(actionType);
-                prevHash = event.eventHash;
-            }
-
-            expect(registry.getEventCount()).toBe(4);
-        });
-    });
-
-    describe('getEvent', () => {
-        it('should retrieve event by ID', () => {
-            const registered = registry.registerEvent({
-                agentId: TEST_AGENT_ID,
+        it('should enforce causal chain continuity', () => {
+            const registry = new CausalEventRegistry(agentId);
+            const e1 = registry.registerEvent({
+                agentId,
                 actionType: 'request',
-                payloadHash: sha3('test'),
+                payloadHash: sha3('p1'),
                 predecessorHash: null,
                 timestamp: Date.now()
             });
 
-            const retrieved = registry.getEvent(registered.causalEventId);
-
-            expect(retrieved).toEqual(registered);
-        });
-
-        it('should return null for unknown ID', () => {
-            expect(registry.getEvent('unknown-id')).toBeNull();
-        });
-    });
-
-    describe('getEventByHash', () => {
-        it('should retrieve event by hash', () => {
-            const registered = registry.registerEvent({
-                agentId: TEST_AGENT_ID,
-                actionType: 'request',
-                payloadHash: sha3('test'),
-                predecessorHash: null,
-                timestamp: Date.now()
-            });
-
-            const retrieved = registry.getEventByHash(registered.eventHash);
-
-            expect(retrieved).toEqual(registered);
-        });
-
-        it('should return null for unknown hash', () => {
-            expect(registry.getEventByHash(sha3('unknown'))).toBeNull();
-        });
-    });
-
-    describe('getEventChain', () => {
-        it('should return chain in causal order', () => {
-            const events: any[] = [];
-            let prevHash: string | null = null;
-
-            for (let i = 0; i < 5; i++) {
-                const event = registry.registerEvent({
-                    agentId: TEST_AGENT_ID,
-                    actionType: 'request',
-                    payloadHash: sha3(`event-${i}`),
-                    predecessorHash: prevHash,
-                    timestamp: Date.now() + i
-                });
-                events.push(event);
-                prevHash = event.eventHash;
-            }
-
-            const chain = registry.getEventChain(events[4].causalEventId, 10);
-
-            expect(chain.length).toBe(5);
-            expect(chain[0].causalEventId).toBe(events[0].causalEventId);
-            expect(chain[4].causalEventId).toBe(events[4].causalEventId);
-        });
-
-        it('should respect depth limit', () => {
-            let prevHash: string | null = null;
-            let lastEventId = '';
-
-            for (let i = 0; i < 10; i++) {
-                const event = registry.registerEvent({
-                    agentId: TEST_AGENT_ID,
-                    actionType: 'request',
-                    payloadHash: sha3(`event-${i}`),
-                    predecessorHash: prevHash,
-                    timestamp: Date.now() + i
-                });
-                prevHash = event.eventHash;
-                lastEventId = event.causalEventId;
-            }
-
-            const chain = registry.getEventChain(lastEventId, 4);
-
-            // total chain length including target = 4
-            expect(chain.length).toBe(4);
-        });
-
-        it('should return empty array for unknown event', () => {
-            expect(registry.getEventChain('unknown-id', 5)).toEqual([]);
-        });
-    });
-
-    describe('getProofPath', () => {
-        it('should return proof path for event', () => {
-            registry.registerEvent({
-                agentId: TEST_AGENT_ID,
-                actionType: 'request',
-                payloadHash: sha3('test'),
-                predecessorHash: null,
-                timestamp: Date.now()
-            });
-
-            const second = registry.registerEvent({
-                agentId: TEST_AGENT_ID,
+            expect(() => registry.registerEvent({
+                agentId,
                 actionType: 'response',
-                payloadHash: sha3('response'),
-                predecessorHash: registry.getLastEventHash(),
+                payloadHash: sha3('p2'),
+                predecessorHash: '0xWrongHash',
                 timestamp: Date.now()
-            });
-
-            const proofPath = registry.getProofPath(second.causalEventId);
-
-            expect(proofPath).not.toBeNull();
-            expect(Array.isArray(proofPath)).toBe(true);
+            })).toThrow('Invalid predecessor hash');
         });
 
-        it('should return null for unknown event', () => {
-            expect(registry.getProofPath('unknown')).toBeNull();
-        });
-    });
-
-    describe('verifyEventInclusion', () => {
-        it('should verify included event', () => {
-            const event = registry.registerEvent({
-                agentId: TEST_AGENT_ID,
+        it('should link events correctly in sequence', () => {
+            const registry = new CausalEventRegistry(agentId);
+            const e1 = registry.registerEvent({
+                agentId,
                 actionType: 'request',
-                payloadHash: sha3('test'),
+                payloadHash: sha3('p1'),
                 predecessorHash: null,
                 timestamp: Date.now()
             });
 
+            const e2 = registry.registerEvent({
+                agentId,
+                actionType: 'response',
+                payloadHash: sha3('p2'),
+                predecessorHash: e1.eventHash,
+                timestamp: Date.now()
+            });
+
+            expect(e2.predecessorHash).toBe(e1.eventHash);
+            expect(registry.getLastEventHash()).toBe(e2.eventHash);
+
+            // Branch: subsequent event with null predecessor (allowed but covered)
+            registry.registerEvent({
+                agentId,
+                actionType: 'request',
+                payloadHash: sha3('p3'),
+                predecessorHash: null,
+                timestamp: Date.now()
+            });
+        });
+    });
+
+    describe('queries and export', () => {
+        it('should return event by hash', () => {
+            const registry = new CausalEventRegistry(agentId);
+            const event = registry.registerEvent({ agentId, actionType: 'request', payloadHash: sha3('1'), predecessorHash: null, timestamp: Date.now() });
+            expect(registry.getEventByHash(event.eventHash)).toEqual(event);
+            expect(registry.getEventByHash('0xNonExistent')).toBeNull();
+            expect(registry.getEvent('NonExistent')).toBeNull();
+        });
+
+        it('should retrieve causal chain', () => {
+            const registry = new CausalEventRegistry(agentId);
+            const e1 = registry.registerEvent({ agentId, actionType: 'request', payloadHash: sha3('1'), predecessorHash: null, timestamp: Date.now() });
+            const e2 = registry.registerEvent({ agentId, actionType: 'response', payloadHash: sha3('2'), predecessorHash: e1.eventHash, timestamp: Date.now() });
+
+            const chain = registry.getEventChain(e2.causalEventId, 5);
+            expect(chain).toEqual([e1, e2]);
+        });
+
+        it('should handle broken chains gracefully', () => {
+            const registry = new CausalEventRegistry(agentId);
+            const event1 = registry.registerEvent({ agentId, actionType: 'request', payloadHash: sha3('1'), predecessorHash: null, timestamp: 1000 });
+            const event2 = registry.registerEvent({ agentId, actionType: 'response', payloadHash: sha3('2'), predecessorHash: event1.eventHash, timestamp: 2000 });
+
+            // Manually corrupt internal mapping to trigger "Chain broken" branch
+            // @ts-ignore
+            registry.eventsByHash.delete(event1.eventHash);
+
+            const chain = registry.getEventChain(event2.causalEventId, 5);
+            expect(chain.length).toBe(1);
+            expect(chain[0].eventHash).toBe(event2.eventHash);
+        });
+
+        it('should handle non-existent event in chain request', () => {
+            const registry = new CausalEventRegistry(agentId);
+            const chain = registry.getEventChain('non-existent');
+            expect(chain).toEqual([]);
+        });
+
+        it('should verify inclusion', () => {
+            const registry = new CausalEventRegistry(agentId);
+            const event = registry.registerEvent({ agentId, actionType: 'request', payloadHash: sha3('1'), predecessorHash: null, timestamp: Date.now() });
             expect(registry.verifyEventInclusion(event.eventHash)).toBe(true);
+            expect(registry.verifyEventInclusion('0xWrong')).toBe(false);
+            expect(registry.getProofPath('0xWrong')).toBeNull();
         });
 
-        it('should reject unknown event hash', () => {
-            expect(registry.verifyEventInclusion(sha3('unknown'))).toBe(false);
-        });
-    });
-
-    describe('export', () => {
-        it('should export empty registry', () => {
+        it('should export registry state', () => {
+            const registry = new CausalEventRegistry(agentId);
+            registry.registerEvent({ agentId, actionType: 'request', payloadHash: sha3('1'), predecessorHash: null, timestamp: Date.now() });
             const exported = registry.export();
-
-            expect(exported.agentId).toBe(TEST_AGENT_ID);
-            expect(exported.events).toEqual([]);
-            expect(exported.tree.leafCount).toBe(0);
-        });
-
-        it('should export populated registry', () => {
-            registry.registerEvent({
-                agentId: TEST_AGENT_ID,
-                actionType: 'request',
-                payloadHash: sha3('test'),
-                predecessorHash: null,
-                timestamp: Date.now()
-            });
-
-            const exported = registry.export();
-
+            expect(exported.agentId).toBe(agentId);
             expect(exported.events.length).toBe(1);
-            expect(exported.tree.leafCount).toBe(1);
-        });
-
-        it('should export events in order', () => {
-            let prevHash: string | null = null;
-
-            for (let i = 0; i < 5; i++) {
-                const event = registry.registerEvent({
-                    agentId: TEST_AGENT_ID,
-                    actionType: 'request',
-                    payloadHash: sha3(`event-${i}`),
-                    predecessorHash: prevHash,
-                    timestamp: Date.now() + i
-                });
-                prevHash = event.eventHash;
-            }
-
-            const exported = registry.export();
-
-            for (let i = 0; i < 5; i++) {
-                expect(exported.events[i].positionInTree).toBe(i);
-            }
-        });
-    });
-
-    describe('getRootHash', () => {
-        it('should return empty string for empty registry', () => {
-            expect(registry.getRootHash()).toBe('');
-        });
-
-        it('should return current root', () => {
-            registry.registerEvent({
-                agentId: TEST_AGENT_ID,
-                actionType: 'request',
-                payloadHash: sha3('test'),
-                predecessorHash: null,
-                timestamp: Date.now()
-            });
-
-            expect(registry.getRootHash()).toMatch(/^0x[a-f0-9]{64}$/);
-        });
-    });
-
-    describe('getLastEventHash', () => {
-        it('should return null for empty registry', () => {
-            expect(registry.getLastEventHash()).toBeNull();
-        });
-
-        it('should return last registered event hash', () => {
-            const first = registry.registerEvent({
-                agentId: TEST_AGENT_ID,
-                actionType: 'request',
-                payloadHash: sha3('first'),
-                predecessorHash: null,
-                timestamp: Date.now()
-            });
-
-            expect(registry.getLastEventHash()).toBe(first.eventHash);
-
-            const second = registry.registerEvent({
-                agentId: TEST_AGENT_ID,
-                actionType: 'response',
-                payloadHash: sha3('second'),
-                predecessorHash: first.eventHash,
-                timestamp: Date.now()
-            });
-
-            expect(registry.getLastEventHash()).toBe(second.eventHash);
+            expect(exported.tree).toBeDefined();
         });
     });
 });

@@ -41,15 +41,15 @@ function keccakF(state: bigint[]): void {
     for (let round = 0; round < 24; round++) {
         // Theta
         for (let x = 0; x < 5; x++) {
-            c[x] = (state[x] ?? 0n) ^ (state[x + 5] ?? 0n) ^ (state[x + 10] ?? 0n) ^ (state[x + 15] ?? 0n) ^ (state[x + 20] ?? 0n);
+            c[x] = state[x]! ^ state[x + 5]! ^ state[x + 10]! ^ state[x + 15]! ^ state[x + 20]!;
         }
 
         for (let x = 0; x < 5; x++) {
-            const c4 = c[(x + 4) % 5] ?? 0n;
-            const c1 = c[(x + 1) % 5] ?? 0n;
+            const c4 = c[(x + 4) % 5]!;
+            const c1 = c[(x + 1) % 5]!;
             const d = c4 ^ rotl64(c1, 1);
             for (let y = 0; y < 25; y += 5) {
-                state[y + x] = ((state[y + x] ?? 0n) ^ d) & MASK64;
+                state[y + x] = (state[y + x]! ^ d) & MASK64;
             }
         }
 
@@ -58,39 +58,24 @@ function keccakF(state: bigint[]): void {
             const x = i % 5;
             const y = Math.floor(i / 5);
             const newY = (2 * x + 3 * y) % 5;
-            b[y + newY * 5] = rotl64(state[i] ?? 0n, ROTATIONS[i] ?? 0);
+            b[y + newY * 5] = rotl64(state[i]!, ROTATIONS[i]!);
         }
 
         // Chi
         for (let y = 0; y < 25; y += 5) {
             for (let x = 0; x < 5; x++) {
-                const b0 = b[y + x] ?? 0n;
-                const b1 = b[y + (x + 1) % 5] ?? 0n;
-                const b2 = b[y + (x + 2) % 5] ?? 0n;
+                const b0 = b[y + x]!;
+                const b1 = b[y + (x + 1) % 5]!;
+                const b2 = b[y + (x + 2) % 5]!;
                 state[y + x] = (b0 ^ ((~b1) & b2)) & MASK64;
             }
         }
 
         // Iota
-        state[0] = ((state[0] ?? 0n) ^ (RC[round] ?? 0n)) & MASK64;
+        state[0] = (state[0]! ^ RC[round]!) & MASK64;
     }
 }
 
-/**
- * Convert bytes to state
- */
-function bytesToLanes(bytes: Uint8Array): bigint[] {
-    const lanes: bigint[] = new Array<bigint>(25).fill(0n);
-    const len = Math.min(bytes.length, 200);
-
-    for (let i = 0; i < len; i++) {
-        const lane = Math.floor(i / 8);
-        const offset = (i % 8) * 8;
-        lanes[lane] = ((lanes[lane] ?? 0n) | (BigInt(bytes[i] ?? 0) << BigInt(offset))) & MASK64;
-    }
-
-    return lanes;
-}
 
 /**
  * Extract bytes from state
@@ -100,7 +85,7 @@ function lanesToBytes(lanes: bigint[], count: number): Uint8Array {
     for (let i = 0; i < count; i++) {
         const lane = Math.floor(i / 8);
         const offset = (i % 8) * 8;
-        bytes[i] = Number(((lanes[lane] ?? 0n) >> BigInt(offset)) & 0xffn);
+        bytes[i] = Number((lanes[lane]! >> BigInt(offset)) & 0xffn);
     }
     return bytes;
 }
@@ -113,7 +98,7 @@ function xorBytes(lanes: bigint[], bytes: Uint8Array): void {
     for (let i = 0; i < len; i++) {
         const lane = Math.floor(i / 8);
         const offset = (i % 8) * 8;
-        lanes[lane] = ((lanes[lane] ?? 0n) ^ (BigInt(bytes[i] ?? 0) << BigInt(offset))) & MASK64;
+        lanes[lane] = (lanes[lane]! ^ (BigInt(bytes[i]!) << BigInt(offset))) & MASK64;
     }
 }
 
@@ -149,7 +134,7 @@ export function sha3(input: string | Uint8Array): string {
         padded.set(message.slice(offset));
     }
     padded[remaining] = 0x06; // SHA3 domain separator
-    padded[rate - 1] = (padded[rate - 1] ?? 0) | 0x80; // Final bit
+    padded[rate - 1]! |= 0x80; // Final bit
 
     xorBytes(state, padded);
     keccakF(state);
