@@ -200,9 +200,9 @@ describe('CausalEventRegistry', () => {
                 lastEventId = event.causalEventId;
             }
 
-            const chain = registry.getEventChain(lastEventId, 3);
+            const chain = registry.getEventChain(lastEventId, 4);
 
-            // depth 3 predecessors + 1 target = 4 events
+            // total chain length including target = 4
             expect(chain.length).toBe(4);
         });
 

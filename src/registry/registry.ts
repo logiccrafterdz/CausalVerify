@@ -129,11 +129,11 @@ export class CausalEventRegistry {
      */
     getEventChain(eventId: string, depth: number = 5): CausalEvent[] {
         const targetEvent = this.events.get(eventId);
-        if (!targetEvent) {
+        if (!targetEvent || depth <= 0) {
             return [];
         }
 
-        const chain: CausalEvent[] = [];
+        const chain: CausalEvent[] = [targetEvent];
         let currentHash: string | null = targetEvent.predecessorHash;
 
         // Walk backwards through causal chain
@@ -145,9 +145,6 @@ export class CausalEventRegistry {
             chain.unshift(event); // Add at beginning to maintain order
             currentHash = event.predecessorHash;
         }
-
-        // Add target event at end
-        chain.push(targetEvent);
 
         return chain;
     }

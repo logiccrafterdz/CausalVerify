@@ -18,6 +18,10 @@ export type {
     RegistryExport
 } from './types/index.js';
 
+export * from './registry/index.js';
+export * from './proof/index.js';
+export * from './verification/index.js';
+
 // Crypto utilities
 export { sha3, sha3Bytes, sha3Concat } from './crypto/sha3.js';
 export { generateUUIDv7, extractTimestamp, isValidUUIDv7, compareUUIDv7 } from './crypto/uuid.js';

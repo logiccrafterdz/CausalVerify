@@ -11,6 +11,9 @@ CausalVerify acts as a trust layer for autonomous agents and payment protocols (
 - **UUIDv7**: Timestamp-ordered identifiers for guaranteed causal sorting.
 - **Merkle Tree Proofs**: Efficient `O(log n)` inclusion proofs for event verification.
 - **Causal Event Registry**: Enforces strict predecessor-successor relationships.
+- **secp256k1 ECDSA**: Pure JS implementation for signing and verifying proofs.
+- **Atomic Proof Generation**: Combined Merkle paths, causal chains, and agent signatures.
+- **Stateless Verification**: Pure, side-effect-free verification of causal proofs and semantic rules.
 
 ## Installation
 
@@ -21,23 +24,35 @@ npm install @causal-proofs/core
 ## Quick Start
 
 ```typescript
-import { CausalEventRegistry, sha3 } from '@causal-proofs/core';
+import { 
+  CausalEventRegistry, 
+  sha3, 
+  ProofGenerator, 
+  verifyProof,
+  generateKeyPair 
+} from '@causal-proofs/core';
 
-// Initialize a registry for an agent
-const registry = new CausalEventRegistry('0xAgentID');
+// 1. Setup
+const agentId = '0xAgentID';
+const { privateKey, publicKey } = generateKeyPair();
+const registry = new CausalEventRegistry(agentId);
 
-// Register an event
+// 2. Register an event
 const event = registry.registerEvent({
-  agentId: '0xAgentID',
+  agentId,
   actionType: 'request',
   payloadHash: sha3('some-payload'),
   predecessorHash: null,
   timestamp: Date.now()
 });
 
-// Verify event inclusion
-const isValid = registry.verifyEventInclusion(event.eventHash);
-console.log(`Event 0x... is verified: ${isValid}`);
+// 3. Generate a signed causal proof
+const generator = new ProofGenerator(registry);
+const proof = generator.generateProof(event.causalEventId, privateKey);
+
+// 4. Verification (stateless)
+const result = verifyProof(proof, agentId, publicKey);
+console.log(`Proof is valid: ${result.isValid}`);
 ```
 
 ## Core Components
