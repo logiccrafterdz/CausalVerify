@@ -1,8 +1,12 @@
 # CausalVerify
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Build Status](https://img.shields.io/badge/Build-Passing-brightgreen.svg)]()
+[![Coverage](https://img.shields.io/badge/Coverage-80%2B%25-brightgreen.svg)]()
+
 A lightweight, protocol-agnostic library for **Causal Behavioral Verification**.
 
-CausalVerify acts as a trust layer for autonomous agents and payment protocols (like x402), providing cryptographic proof that events happened in a specific causal order.
+CausalVerify acts as a trust layer for autonomous agents and payment protocols (like x402), providing cryptographic proof that events happened in a specific causal order. It bridges the gap between "Who performed an action" (Identity) and "Did it happen" (Outcome) by proving **Causality**.
 
 ## Features
 
