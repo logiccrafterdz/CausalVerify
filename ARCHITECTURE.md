@@ -62,7 +62,7 @@ Generate minimal cryptographic proof that a specific causal sequence occurred.
     { "eventHash": "0x...", "siblingHash": "0x...", "position": "left|right" }
   ],
   "causalChain": [
-    { "eventHash": "0x...", "actionType": "...", "timestamp": 0 }
+    { "eventHash": "0x...", "actionType": "...", "timestamp": 0, "predecessorHash": "0x..." }
   ],
   "treeRootHash": "0x...",
   "agentSignature": "0x..."
