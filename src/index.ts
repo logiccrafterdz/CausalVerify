@@ -26,6 +26,7 @@ export * from './integration/index.js';
 // Crypto utilities
 export { sha3, sha3Bytes, sha3Concat } from './crypto/sha3.js';
 export { generateUUIDv7, extractTimestamp, isValidUUIDv7, compareUUIDv7 } from './crypto/uuid.js';
+export { generateKeyPair, sign, verify, recoverPublicKey } from './crypto/ecdsa.js';
 
 // Merkle tree
 export { MerkleTree } from './merkle/tree.js';

@@ -38,7 +38,15 @@
     "blockchain",
     "agent"
   ],
-  "author": "",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/logiccrafterdz/CausalVerify.git"
+  },
+  "bugs": {
+    "url": "https://github.com/logiccrafterdz/CausalVerify/issues"
+  },
+  "homepage": "https://github.com/logiccrafterdz/CausalVerify#readme",
+  "author": "LogicCrafterDZ",
   "license": "MIT",
   "engines": {
     "node": ">=18.0.0"

@@ -55,27 +55,44 @@ const result = verifyProof(proof, agentId, publicKey);
 console.log(`Proof is valid: ${result.isValid}`);
 ```
 
-## Core Components
+## API Reference
 
-- **CausalEventRegistry**: The main interface for managing events and their causal links.
-- **MerkleTree**: Underpins the registry to provide verifiable state commitment.
-- **Crypto Utilities**: Optimized SHA3-256 and UUIDv7 implementations.
+### Core Classes
 
-## Development
+#### `CausalEventRegistry(agentId: string)`
+Manages an agent's causal history.
+- `registerEvent(input: EventInput): CausalEvent`: Adds a new action to the registry.
+- `getEventChain(eventId: string, depth: number): CausalEvent[]`: Retrieves causal history.
+- `generateProofPath(eventId: string): ProofPathElement[]`: Generates Merkle inclusion path.
 
-```bash
-# Install dependencies
-npm install
+#### `ProofGenerator(registry: CausalEventRegistry)`
+Orchestrates proof creation.
+- `generateProof(eventId: string, privateKey: string, chainDepth: number): CausalProof`: Creates a signed, multi-layered proof.
 
-# Run tests
-npm test
+#### `SemanticRulesEngine(rules: SemanticRules)`
+Validates business logic in causal chains.
+- `validate(chain: CausalChainElement[]): { valid: boolean, violations: string[] }`
 
-# Check coverage
-npm run test:coverage
+### Verification Functions
 
-# Build for production
-npm run build
-```
+#### `verifyProof(proof, agentId, publicKey): VerificationResult`
+Stateless cryptographic validation (Merkle + Signature + Integrity).
+
+#### `verifyPrePayment(proof, agentId, publicKey, rules?): VerificationResult`
+Orchestrated validation combining crypto and semantic rules for x402 flows.
+
+## Trust Model
+
+CausalVerify provides a "Trust Score" (0.0 - 1.0) based on:
+- **1.0 (High Trust)**: Cryptography is valid AND semantic rules pass.
+- **0.5 (Partial Trust)**: Cryptography is valid but semantic rules fail (e.g., response received before request).
+- **0.0 (No Trust)**: Signature mismatch or Merkle inclusion failure.
+
+## Quality Gates
+
+- **100% Native**: Zero runtime dependencies.
+- **Strict Security**: SHA3-256 for all hashing; UUIDv7 for temporal sorting.
+- **High Coverage**: Branch coverage > 80%; exhaustive NIST/RFC verification.
 
 ## Security
 
