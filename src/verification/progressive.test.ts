@@ -86,10 +86,10 @@ describe('Progressive Verification', () => {
         const agentId = '0xAgent';
         const lightProof: any = {
             agentId,
-            targetEventHash: '0x123',
+            targetEventHash: '0x124', // Target is last in chain
             causalChain: [
                 { eventHash: '0x123', timestamp: 2000 },
-                { eventHash: '0x124', timestamp: 1000 } // Out of order
+                { eventHash: '0x124', timestamp: 1000 } // Out of order, but hash check passes
             ],
             timestamp: Date.now()
         };
