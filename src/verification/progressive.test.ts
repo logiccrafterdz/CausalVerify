@@ -29,8 +29,9 @@ describe('Progressive Verification', () => {
         }
 
         const generator = new ProofGenerator(registry);
-        const events = registry.events;
-        const lastId = Array.from(events.keys()).pop()!;
+        const allEvents = registry.export().events;
+        const lastEvent = allEvents[allEvents.length - 1]!;
+        const lastId = lastEvent.causalEventId;
         const fullProof = generator.generateProof(lastId, privateKey);
 
         const lightProof = {
