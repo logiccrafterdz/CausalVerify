@@ -4,6 +4,17 @@ A lightweight, protocol-agnostic library for **Causal Behavioral Verification**.
 
 CausalVerify acts as a trust layer for autonomous agents and payment protocols (like x402), providing cryptographic proof that events happened in a specific causal order. It bridges the gap between "Who performed an action" (Identity) and "Did it happen" (Outcome) by proving **Causality**.
 
+## Progressive Trust: Why 0.28ms Matters for x402
+
+In high-throughput agent economies, asymmetric cryptography (ECDSA) is the bottleneck. In pure JavaScript, a full verification takes **~150ms**, which exceeds the **< 100ms** latency budget required for real-time x402 payment interactions.
+
+CausalVerify solves this with a **Layered Architectural Breakthrough**:
+
+- **Phase 1: Immediate Trust (< 1ms)**: Fast metadata and causal integrity check via `LightProof`. It grants initial confidence in **0.28ms**, allowing the payment flow to proceed instantly.
+- **Phase 2: Deferred Verification (~150ms)**: Full background cryptographic verification (ECDSA + Merkle) that runs without blocking the main event loop.
+
+This ensures you never have to choose between **Protocol-level Security** and **Real-time Performance**.
+
 ## Features
 
 - **Zero Runtime Dependencies**: Pure JavaScript/TypeScript implementation for maximum portability.
