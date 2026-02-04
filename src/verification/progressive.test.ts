@@ -137,4 +137,32 @@ describe('Progressive Verification', () => {
         const fullRes = await result.fullResult;
         expect(fullRes?.isValid).toBe(true);
     });
+
+    it('should reject light proofs with agent ID mismatch', async () => {
+        const agentId = '0xAgent';
+        const lightProof: any = {
+            agentId: '0xWrongAgent',
+            targetEventHash: '0x123',
+            causalChain: [{ eventHash: '0x123', timestamp: Date.now() }],
+            timestamp: Date.now()
+        };
+
+        const verifier = new ProgressiveVerifier();
+        const result = await verifier.verify({ light: lightProof }, { agentId });
+        expect(result.canProceed).toBe(false);
+    });
+
+    it('should reject light proofs where target is not in the chain', async () => {
+        const agentId = '0xAgent';
+        const lightProof: any = {
+            agentId,
+            targetEventHash: '0xTargetMissing',
+            causalChain: [{ eventHash: '0xSomeOtherEvent', timestamp: Date.now() }],
+            timestamp: Date.now()
+        };
+
+        const verifier = new ProgressiveVerifier();
+        const result = await verifier.verify({ light: lightProof }, { agentId }, { minDepth: 1 });
+        expect(result.canProceed).toBe(false);
+    });
 });
