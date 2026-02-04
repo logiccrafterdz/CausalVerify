@@ -29,7 +29,7 @@ This ensures you never have to choose between **Protocol-level Security** and **
 ## Installation
 
 ```bash
-npm install @causal-proofs/core
+npm install @logiccrafterdz/causal-verify
 ```
 
 ## Quick Start
@@ -41,7 +41,7 @@ import {
   ProofGenerator, 
   verifyProof,
   generateKeyPair 
-} from '@causal-proofs/core';
+} from '@logiccrafterdz/causal-verify';
 
 // 1. Setup
 const agentId = '0xAgentID';
