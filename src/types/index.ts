@@ -95,6 +95,36 @@ export interface VerificationResult {
 }
 
 /**
+ * Lightweight proof for immediate verification
+ */
+export interface LightProof {
+    /** Agent that generated the proof */
+    agentId: string;
+    /** Hash of the target event */
+    targetEventHash: string;
+    /** Simplified chain of metadata (event hashes and timestamps) */
+    causalChain: { eventHash: string; timestamp: number }[];
+    /** Current timestamp of proof generation */
+    timestamp: number;
+}
+
+/**
+ * Result of a progressive verification process
+ */
+export interface ProgressiveResult {
+    /** Whether the interaction can proceed based on immediate trust */
+    canProceed: boolean;
+    /** Reason for the decision */
+    reason: string;
+    /** Initial trust score (0.0 - 1.0) */
+    immediateTrust: number;
+    /** Status of the deferred cryptographic verification */
+    deferredStatus: 'pending' | 'completed' | 'not_requested';
+    /** Promise that resolves to final full verification result */
+    fullResult?: Promise<VerificationResult>;
+}
+
+/**
  * Semantic rules for proof verification
  */
 export interface SemanticRules {
