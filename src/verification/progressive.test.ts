@@ -120,10 +120,9 @@ describe('Progressive Verification', () => {
         const { privateKey, publicKey } = generateKeyPair();
         const agentId = '0xAgent';
         const registry = new CausalEventRegistry(agentId);
-        registry.registerEvent({ agentId, actionType: 'request', payloadHash: sha3('1'), predecessorHash: null, timestamp: Date.now() });
-
+        const event = registry.registerEvent({ agentId, actionType: 'request', payloadHash: sha3('1'), predecessorHash: null, timestamp: Date.now() });
         const generator = new ProofGenerator(registry);
-        const fullProof = generator.generateProof(registry.getLastEventHash()!, privateKey);
+        const fullProof = generator.generateProof(event.causalEventId, privateKey);
         const lightProof = {
             agentId,
             targetEventHash: fullProof.targetEvent.eventHash,
