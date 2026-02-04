@@ -80,4 +80,61 @@ describe('Progressive Verification', () => {
         expect(result.canProceed).toBe(false);
         expect(result.reason).toBe('light_verification_failed');
     });
+
+    it('should reject light proofs with invalid temporal ordering', async () => {
+        const agentId = '0xAgent';
+        const lightProof: any = {
+            agentId,
+            targetEventHash: '0x123',
+            causalChain: [
+                { eventHash: '0x123', timestamp: 2000 },
+                { eventHash: '0x124', timestamp: 1000 } // Out of order
+            ],
+            timestamp: Date.now()
+        };
+
+        const verifier = new ProgressiveVerifier();
+        const result = await verifier.verify({ light: lightProof }, { agentId }, { minDepth: 2 });
+        expect(result.canProceed).toBe(false);
+    });
+
+    it('should reject light proofs where target is not the last element', async () => {
+        const agentId = '0xAgent';
+        const lightProof: any = {
+            agentId,
+            targetEventHash: '0x123',
+            causalChain: [
+                { eventHash: '0x123', timestamp: 1000 },
+                { eventHash: '0x124', timestamp: 2000 }
+            ],
+            timestamp: Date.now()
+        };
+
+        const verifier = new ProgressiveVerifier();
+        const result = await verifier.verify({ light: lightProof }, { agentId }, { minDepth: 2 });
+        expect(result.canProceed).toBe(false);
+    });
+
+    it('should execute deferred verification when requested', async () => {
+        const { privateKey, publicKey } = generateKeyPair();
+        const agentId = '0xAgent';
+        const registry = new CausalEventRegistry(agentId);
+        registry.registerEvent({ agentId, actionType: 'request', payloadHash: sha3('1'), predecessorHash: null, timestamp: Date.now() });
+
+        const generator = new ProofGenerator(registry);
+        const fullProof = generator.generateProof(registry.getLastEventHash()!, privateKey);
+        const lightProof = {
+            agentId,
+            targetEventHash: fullProof.targetEvent.eventHash,
+            causalChain: fullProof.causalChain.map(el => ({ eventHash: el.eventHash, timestamp: el.timestamp })),
+            timestamp: Date.now()
+        };
+
+        const verifier = new ProgressiveVerifier();
+        const result = await verifier.verify({ light: lightProof, full: fullProof }, { agentId, publicKey }, { autoVerifyFull: true });
+
+        expect(result.deferredStatus).toBe('pending');
+        const fullRes = await result.fullResult;
+        expect(fullRes?.isValid).toBe(true);
+    });
 });
