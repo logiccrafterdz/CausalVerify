@@ -5,7 +5,7 @@
  */
 
 import { sha3Concat } from '../crypto/sha3.js';
-import { generateUUIDv7 } from '../crypto/uuid.js';
+import { generateUUIDv7, extractTimestamp } from '../crypto/uuid.js';
 import { MerkleTree } from '../merkle/tree.js';
 import type {
     EventInput,
@@ -13,6 +13,11 @@ import type {
     RegistryExport,
     ProofPathElement
 } from '../types/index.js';
+
+/**
+ * Maximum allowed difference between input timestamp and UUID timestamp (in ms)
+ */
+const MAX_TIMESTAMP_SKEW_MS = 5000;
 
 /**
  * Registry for causally-ordered events with Merkle tree backing
@@ -70,6 +75,16 @@ export class CausalEventRegistry {
 
         // Generate event ID
         const causalEventId = generateUUIDv7();
+
+        // HIGH-004: Validate timestamp is within acceptable range of UUID timestamp
+        const uuidTimestamp = extractTimestamp(causalEventId);
+        const timestampSkew = Math.abs(input.timestamp - uuidTimestamp);
+        if (timestampSkew > MAX_TIMESTAMP_SKEW_MS) {
+            throw new Error(
+                `Timestamp validation failed: input timestamp ${input.timestamp} differs ` +
+                `from UUID timestamp ${uuidTimestamp} by ${timestampSkew}ms (max allowed: ${MAX_TIMESTAMP_SKEW_MS}ms)`
+            );
+        }
 
         // Compute event hash
         const eventHash = sha3Concat(

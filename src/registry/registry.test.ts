@@ -59,6 +59,18 @@ describe('CausalEventRegistry', () => {
             })).toThrow('Invalid action type');
         });
 
+        it('should reject backdated timestamps that differ from UUID time', () => {
+            const registry = new CausalEventRegistry(agentId);
+            // Use a timestamp from the past (1970)
+            expect(() => registry.registerEvent({
+                agentId,
+                actionType: 'request',
+                payloadHash: sha3('p'),
+                predecessorHash: null,
+                timestamp: 1000 // Very old timestamp
+            })).toThrow('Timestamp validation failed');
+        });
+
         it('should enforce causal chain continuity', () => {
             const registry = new CausalEventRegistry(agentId);
             const e1 = registry.registerEvent({
@@ -130,8 +142,9 @@ describe('CausalEventRegistry', () => {
 
         it('should handle broken chains gracefully', () => {
             const registry = new CausalEventRegistry(agentId);
-            const event1 = registry.registerEvent({ agentId, actionType: 'request', payloadHash: sha3('1'), predecessorHash: null, timestamp: 1000 });
-            const event2 = registry.registerEvent({ agentId, actionType: 'response', payloadHash: sha3('2'), predecessorHash: event1.eventHash, timestamp: 2000 });
+            const now = Date.now();
+            const event1 = registry.registerEvent({ agentId, actionType: 'request', payloadHash: sha3('1'), predecessorHash: null, timestamp: now });
+            const event2 = registry.registerEvent({ agentId, actionType: 'response', payloadHash: sha3('2'), predecessorHash: event1.eventHash, timestamp: now + 100 });
 
             // Manually corrupt internal mapping to trigger "Chain broken" branch
             // @ts-ignore
