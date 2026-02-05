@@ -33,7 +33,7 @@ describe('Verification Patterns', () => {
         });
 
         expect(result.isValid).toBe(false);
-        expect(result.errors.some(e => e.includes('Protocol violation'))).toBe(true);
+        expect(result.errors.some((e: string) => e.includes('Protocol violation'))).toBe(true);
         expect(result.trustScore).toBe(0.5); // Crypto valid, but semantic failed
     });
 
@@ -41,12 +41,13 @@ describe('Verification Patterns', () => {
         const registry = new CausalEventRegistry(agentId);
         const generator = new ProofGenerator(registry);
 
+        const now = Date.now();
         const req = registry.registerEvent({
             agentId,
             actionType: 'request',
             payloadHash: sha3('q1'),
             predecessorHash: null,
-            timestamp: 1000
+            timestamp: now
         });
 
         const res = registry.registerEvent({
@@ -54,7 +55,7 @@ describe('Verification Patterns', () => {
             actionType: 'response',
             payloadHash: sha3('a1'),
             predecessorHash: req.eventHash,
-            timestamp: 1500
+            timestamp: now + 500
         });
 
         const proof = generator.generateProof(res.causalEventId, privateKey);
@@ -65,6 +66,7 @@ describe('Verification Patterns', () => {
         });
 
         expect(result.isValid).toBe(true);
-        expect(result.trustScore).toBe(1.0);
+        // Trust score now uses granular calculation (0.2 base + chain length + recency)
+        expect(result.trustScore).toBeGreaterThan(0.4);
     });
 });

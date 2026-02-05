@@ -76,9 +76,12 @@ export function verifyProof(
 
     const isValid = errors.length === 0;
 
-    // Simple trust score calculation: 1.0 if valid, 0.0 if not
-    // In Week 3/4 this can be more nuanced based on chain length and rules
-    const trustScore = isValid ? 1.0 : 0.0;
+    // HIGH-003: Granular trust scoring based on multiple factors
+    // Trust is calculated from:
+    // - Base cryptographic validity: 0.2
+    // - Chain length bonus: up to 0.4 (max at 10+ events)
+    // - Recency bonus: up to 0.4 (decays over 5 minutes)
+    const trustScore = isValid ? calculateTrustScore(proof.causalChain, proof.targetEvent.timestamp) : 0.0;
 
     return {
         isValid,
@@ -86,6 +89,31 @@ export function verifyProof(
         verifiedActions,
         trustScore
     };
+}
+
+/**
+ * Calculate granular trust score based on chain characteristics
+ * @param chain - The verified causal chain
+ * @param eventTimestamp - Timestamp of the target event
+ * @returns Trust score between 0.0 and 1.0
+ */
+function calculateTrustScore(chain: CausalChainElement[], eventTimestamp: number): number {
+    const BASE_SCORE = 0.2; // Cryptographic validity baseline
+    const MAX_LENGTH_BONUS = 0.4;
+    const MAX_RECENCY_BONUS = 0.4;
+    const OPTIMAL_CHAIN_LENGTH = 10;
+    const FRESHNESS_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
+
+    // Chain length bonus: longer verified chains = higher trust
+    const lengthRatio = Math.min(chain.length / OPTIMAL_CHAIN_LENGTH, 1.0);
+    const lengthBonus = lengthRatio * MAX_LENGTH_BONUS;
+
+    // Recency bonus: recent events = higher trust
+    const age = Date.now() - eventTimestamp;
+    const recencyRatio = Math.max(0, 1 - (age / FRESHNESS_WINDOW_MS));
+    const recencyBonus = recencyRatio * MAX_RECENCY_BONUS;
+
+    return Math.min(BASE_SCORE + lengthBonus + recencyBonus, 1.0);
 }
 
 /**
