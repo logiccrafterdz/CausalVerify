@@ -1,6 +1,6 @@
 {
   "name": "@logiccrafterdz/causal-verify",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Causal Behavioral Verification - trust layer for x402/ERC-8004 ecosystem",
   "type": "module",
   "main": "./dist/index.js",
