@@ -118,13 +118,12 @@ describe('UUIDv7', () => {
     });
 
     describe('environment fallback', () => {
-        it('should fallback to Math.random if crypto is unavailable', () => {
+        it('should throw error if crypto is unavailable', () => {
             const originalCrypto = global.crypto;
             try {
                 // @ts-ignore
                 delete global.crypto;
-                const uuid = generateUUIDv7();
-                expect(isValidUUIDv7(uuid)).toBe(true);
+                expect(() => generateUUIDv7()).toThrow('Secure random number generator unavailable');
             } finally {
                 global.crypto = originalCrypto;
             }

@@ -17,13 +17,11 @@ function getRandomBytes(count: number): Uint8Array {
         return bytes;
     }
 
-    // Fallback for environments without crypto
-    // This should not happen in modern runtimes
-    const bytes = new Uint8Array(count);
-    for (let i = 0; i < count; i++) {
-        bytes[i] = Math.floor(Math.random() * 256);
-    }
-    return bytes;
+    // SECURITY: Do not fall back to Math.random() - it is cryptographically insecure
+    throw new Error(
+        'Secure random number generator unavailable. ' +
+        'crypto.getRandomValues() is required for cryptographic operations.'
+    );
 }
 
 /**

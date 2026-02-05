@@ -98,13 +98,15 @@ function pointMul(k: bigint, P: Point): Point {
  * Generate a cryptographically secure private key
  */
 export function generatePrivateKey(): string {
-    const bytes = new Uint8Array(32);
-    if (typeof crypto !== 'undefined') {
-        crypto.getRandomValues(bytes);
-    } else {
-        // Fallback for environments without crypto
-        for (let i = 0; i < 32; i++) bytes[i] = Math.floor(Math.random() * 256);
+    if (typeof crypto === 'undefined' || !crypto.getRandomValues) {
+        // SECURITY: Do not fall back to Math.random() - it is cryptographically insecure
+        throw new Error(
+            'Secure random number generator unavailable. ' +
+            'crypto.getRandomValues() is required for key generation.'
+        );
     }
+    const bytes = new Uint8Array(32);
+    crypto.getRandomValues(bytes);
     const hex = Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
     return '0x' + hex;
 }

@@ -70,12 +70,11 @@ describe('ECDSA secp256k1', () => {
             }
         });
 
-        it('should handle environment fallback', () => {
+        it('should throw error if crypto is unavailable', () => {
             const originalCrypto = globalThis.crypto;
             // @ts-ignore
             delete globalThis.crypto;
-            const key = generatePrivateKey();
-            expect(isValidPrivateKey(key)).toBe(true);
+            expect(() => generatePrivateKey()).toThrow('Secure random number generator unavailable');
             globalThis.crypto = originalCrypto;
         });
 
