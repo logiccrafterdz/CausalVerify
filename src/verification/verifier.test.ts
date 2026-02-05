@@ -87,9 +87,16 @@ describe('Stateless Verification', () => {
             expect(result.errors.some(e => e.includes('Temporal anomaly'))).toBe(true);
         });
 
-        it('should handle missing predecessor', () => {
+        it('should allow truncated chain with non-null predecessor by default', () => {
             const chain = [{ eventHash: 'h2', actionType: 'response' as any, timestamp: 1000, predecessorHash: 'h1' }];
             const result = verifyCausalChain(chain, 'h2');
+            // Truncated chain should now be valid (CRIT-003 fix)
+            expect(result.valid).toBe(true);
+        });
+
+        it('should enforce null predecessor when requireNullRoot is true', () => {
+            const chain = [{ eventHash: 'h2', actionType: 'response' as any, timestamp: 1000, predecessorHash: 'h1' }];
+            const result = verifyCausalChain(chain, 'h2', { requireNullRoot: true });
             expect(result.valid).toBe(false);
             expect(result.errors.some(e => e.includes('Invalid root event'))).toBe(true);
         });

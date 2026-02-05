@@ -90,13 +90,21 @@ export function verifyProof(
 
 /**
  * Verify the integrity and ordering of a causal chain
+ * 
+ * IMPORTANT: This is a stateless verifier that validates structural integrity
+ * (predecessor linkage and temporal ordering) but cannot re-compute event hashes
+ * without full event data. For complete verification, ensure each chain element
+ * is also validated via Merkle inclusion proof.
+ * 
  * @param chain - The chain of events (oldest first)
  * @param expectedFinalHash - The hash that the chain should end with
+ * @param options - Verification options
  * @returns Object with validity and any errors
  */
 export function verifyCausalChain(
     chain: CausalChainElement[],
-    expectedFinalHash: string
+    expectedFinalHash: string,
+    options: { requireNullRoot?: boolean } = {}
 ): { valid: boolean; errors: string[] } {
     const errors: string[] = [];
 
@@ -110,24 +118,26 @@ export function verifyCausalChain(
         errors.push(`Causal chain final hash mismatch: expected ${expectedFinalHash}, got ${lastElement?.eventHash ?? 'none'}`);
     }
 
-    // In a stateless verifier, we can't fully "re-verify" the hashes of predecessors 
-    // unless the chain includes enough data.
-    // However, we can verify temporal ordering and structural integrity.
+    // Verify structural integrity and temporal ordering
     for (let i = 0; i < chain.length; i++) {
         const current = chain[i]!;
 
-        // Verify root node has no predecessor
-        if (i === 0 && current.predecessorHash !== null) {
-            errors.push('Invalid root event: first event in chain must have null predecessorHash');
+        // CRIT-003 FIX: Only enforce null predecessor if explicitly requested
+        // (for complete chains from the beginning of an agent's history)
+        // Truncated chains may have a non-null predecessor on the first element
+        if (i === 0 && options.requireNullRoot && current.predecessorHash !== null) {
+            errors.push('Invalid root event: first event in complete chain must have null predecessorHash');
         }
 
-        // Verify sequential continuity
+        // Verify sequential continuity between adjacent elements
         if (i > 0) {
             const previous = chain[i - 1];
             if (previous) {
+                // Each element must reference the previous as its predecessor
                 if (current.predecessorHash !== previous.eventHash) {
                     errors.push(`Causal gap detected: event ${current.eventHash} at index ${i} expects predecessor ${current.predecessorHash}, but got ${previous.eventHash}`);
                 }
+                // Temporal ordering: events must not be before their predecessors
                 if (current.timestamp < previous.timestamp) {
                     errors.push(`Temporal anomaly at index ${i}: event ${current.eventHash} happened before its predecessor`);
                 }
