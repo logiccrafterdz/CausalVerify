@@ -1,30 +1,18 @@
 # CausalVerify
 
-A lightweight, protocol-agnostic library for **Causal Behavioral Verification**.
+A lightweight library for causal behavioral verification in autonomous agent systems.
 
-CausalVerify acts as a trust layer for autonomous agents and payment protocols (like x402), providing cryptographic proof that events happened in a specific causal order. It bridges the gap between "Who performed an action" (Identity) and "Did it happen" (Outcome) by proving **Causality**.
-
-## Progressive Trust: Why 0.28ms Matters for x402
-
-In high-throughput agent economies, asymmetric cryptography (ECDSA) is the bottleneck. In pure JavaScript, a full verification takes **~150ms**, which exceeds the **< 100ms** latency budget required for real-time x402 payment interactions.
-
-CausalVerify solves this with a **Layered Architectural Breakthrough**:
-
-- **Phase 1: Immediate Trust (< 1ms)**: Fast metadata and causal integrity check via `LightProof`. It grants initial confidence in **0.28ms**, allowing the payment flow to proceed instantly.
-- **Phase 2: Deferred Verification (~150ms)**: Full background cryptographic verification (ECDSA + Merkle) that runs without blocking the main event loop.
-
-This ensures you never have to choose between **Protocol-level Security** and **Real-time Performance**.
+CausalVerify provides cryptographic proof that events happened in a specific causal order. It serves as a trust layer for payment protocols like x402, bridging identity verification and outcome validation through proven causality.
 
 ## Features
 
-- **Zero Runtime Dependencies**: Pure JavaScript/TypeScript implementation for maximum portability.
-- **SHA3-256 (Keccak)**: NIST FIPS 202 compliant hashing.
-- **UUIDv7**: Timestamp-ordered identifiers for guaranteed causal sorting.
-- **Merkle Tree Proofs**: Efficient `O(log n)` inclusion proofs for event verification.
-- **Causal Event Registry**: Enforces strict predecessor-successor relationships.
-- **secp256k1 ECDSA**: Pure JS implementation for signing and verifying proofs.
-- **Atomic Proof Generation**: Combined Merkle paths, causal chains, and agent signatures.
-- **Stateless Verification**: Pure, side-effect-free verification of causal proofs and semantic rules.
+- Zero runtime dependencies (pure JavaScript/TypeScript)
+- SHA3-256 hashing (FIPS 202 compliant)
+- UUIDv7 for timestamp-ordered identifiers
+- Merkle tree proofs with O(log n) verification
+- Causal event registry with predecessor enforcement
+- secp256k1 ECDSA signing (BIP-62 compliant)
+- Browser and Node.js compatible
 
 ## Installation
 
@@ -43,82 +31,103 @@ import {
   generateKeyPair 
 } from '@logiccrafterdz/causal-verify';
 
-// 1. Setup
+// Setup
 const agentId = '0xAgentID';
 const { privateKey, publicKey } = generateKeyPair();
 const registry = new CausalEventRegistry(agentId);
 
-// 2. Register an event
+// Register an event
 const event = registry.registerEvent({
   agentId,
   actionType: 'request',
-  payloadHash: sha3('some-payload'),
+  payloadHash: sha3('payload'),
   predecessorHash: null,
   timestamp: Date.now()
 });
 
-// 3. Generate a signed causal proof
+// Generate proof
 const generator = new ProofGenerator(registry);
 const proof = generator.generateProof(event.causalEventId, privateKey);
 
-// 4. Verification (stateless)
+// Verify
 const result = verifyProof(proof, agentId, publicKey);
-console.log(`Proof is valid: ${result.isValid}`);
+console.log(`Valid: ${result.isValid}, Trust: ${result.trustScore}`);
 ```
 
 ## API Reference
 
-### Core Classes
+### CausalEventRegistry
 
-#### `CausalEventRegistry(agentId: string)`
-Manages an agent's causal history.
-- `registerEvent(input: EventInput): CausalEvent`: Adds a new action to the registry.
-- `getEventChain(eventId: string, depth: number): CausalEvent[]`: Retrieves causal history.
-- `generateProofPath(eventId: string): ProofPathElement[]`: Generates Merkle inclusion path.
+```typescript
+const registry = new CausalEventRegistry(agentId);
+registry.registerEvent(input);
+registry.getEventChain(eventId, depth);
+registry.generateProofPath(eventId);
+```
 
-#### `ProofGenerator(registry: CausalEventRegistry)`
-Orchestrates proof creation.
-- `generateProof(eventId: string, privateKey: string, chainDepth: number): CausalProof`: Creates a signed, multi-layered proof.
+### ProofGenerator
 
-#### `SemanticRulesEngine(rules: SemanticRules)`
-Validates business logic in causal chains.
-- `validate(chain: CausalChainElement[]): { valid: boolean, violations: string[] }`
+```typescript
+const generator = new ProofGenerator(registry);
+generator.generateProof(eventId, privateKey, chainDepth);
+```
 
-### Verification Functions
+### Verification
 
-#### `verifyProof(proof, agentId, publicKey): VerificationResult`
-Stateless cryptographic validation (Merkle + Signature + Integrity).
+```typescript
+verifyProof(proof, agentId, publicKey);
+verifyPrePayment(proof, agentId, publicKey, rules);
+verifyCausalChain(chain, expectedHash, options);
+```
 
-#### `verifyPrePayment(proof, agentId, publicKey, rules?): VerificationResult`
-Orchestrated validation combining crypto and semantic rules for x402 flows.
+## Trust Scoring
 
-## Trust Model
+Trust scores range from 0.0 to 1.0:
 
-CausalVerify provides a "Trust Score" (0.0 - 1.0) based on:
-- **1.0 (High Trust)**: Cryptography is valid AND semantic rules pass.
-- **0.5 (Partial Trust)**: Cryptography is valid but semantic rules fail (e.g., response received before request).
-- **0.0 (No Trust)**: Signature mismatch or Merkle inclusion failure.
+- Base score (0.2): Cryptographic validity confirmed
+- Chain length bonus (up to 0.4): Longer verified chains increase trust
+- Recency bonus (up to 0.4): Recent events receive higher trust
 
-## Quality Gates
+Invalid proofs receive a score of 0.0.
 
-- **100% Native**: Zero runtime dependencies.
-- **Strict Security**: SHA3-256 for all hashing; UUIDv7 for temporal sorting.
-- **BIP-62 Compliant**: Hardened ECDSA implementation with High-S rejection.
-- **High Coverage**: Branch coverage > 95%; exhaustive mathematical edge-case verification.
+## x402 Integration
 
-## Security
+```typescript
+import { encodeCausalHeader, decodeCausalHeader, CAUSAL_PROOF_HEADER } from '@logiccrafterdz/causal-verify';
 
-CausalVerify uses standard SHA3-256 for hashing and RFC-compliant UUIDv7 for ordering. It is designed to be privacy-preserving by only storing hashes of payloads in the Merkle Tree.
+// Encode for HTTP header
+const headerValue = encodeCausalHeader(proof);
+response.setHeader(CAUSAL_PROOF_HEADER, headerValue);
 
-## Progressive Trust Architecture
+// Decode from header
+const proof = decodeCausalHeader(headerValue);
+```
 
-CausalVerify introduces a novel verification pattern for high-throughput agent economies:
+## Security Requirements
 
-1. **Phase 1: Immediate Trust (< 1ms)**: Fast metadata and causal integrity check. Grants initial confidence for real-time interactions (e.g., x402 payments).
-2. **Phase 2: Deferred Verification (~150ms)**: Full background cryptographic verification (ECDSA + Merkle). Finalizes trust and updates long-term reputation.
+- Requires `crypto.getRandomValues()` API (modern browsers, Node.js 15+)
+- Event timestamps must be within 5 seconds of registration time
+- All payloads are stored as hashes for privacy
 
-This architecture decouples immediate response cycles from cryptographic compute limits, enabling **500x+ throughput** improvements in pure JavaScript environments.
+## Progressive Verification
+
+For performance-critical applications:
+
+1. Light verification (under 1ms): Fast metadata and chain continuity check
+2. Full verification (around 150ms): Complete cryptographic validation
+
+```typescript
+import { ProgressiveVerifier } from '@logiccrafterdz/causal-verify';
+
+const verifier = new ProgressiveVerifier();
+const result = await verifier.verify(
+  { light: lightProof, full: fullProof },
+  { agentId, publicKey },
+  { autoVerifyFull: true }
+);
+```
 
 ## License
 
 MIT
+
